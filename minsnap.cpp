@@ -25,22 +25,43 @@ typedef CGAL::Quadratic_program_from_iterators
 Program;
 typedef CGAL::Quadratic_program_solution<ET> Solution;
 
-const int m = 12;
+const int m = 6;
 const int t = 10;
 
-void print(float matrix[t-1][m+1][m+1])
+void print(float matrix[(m+1)*(t-1)][(m+1)*(t-1)])
 {
-    int i, j, z;
-    for (z = 0; z < t-1; z++)
-    {
-      for (i = 0; i < m+1; ++i)
+    int i, j;
+      for (i = 0; i < (m+1)*(t-1); ++i)
       {
-          for (j = 0; j < m+1; ++j)
-              printf("%f ", matrix[z][i][j]);
+          for (j = 0; j < (m+1)*(t-1); ++j)
+              printf("%.0f ", matrix[i][j]);
           printf("\n");
-      }
+      
   }
 }
+
+
+float** create2DArray(unsigned height, unsigned width, float array[][m+1][m+1], int length)
+{
+  float** array2D = 0;
+  array2D = new float*[height];
+  for (int i = 0; i < length; i++)
+  {
+   for (int h = 0; h < m+1; h++)
+    {
+          array2D[i*(m+1)+h] = new float[width];
+
+          for (int w = 0; w < m+1; w++)
+          {
+                array2D[i*(m+1)+h][i*(m+1)+w] = array[i][h][w];
+                //printf("%1f ",array[i][h][w]);
+          }
+    }
+  }
+
+  return array2D;
+}
+
 
 // int * concat(int list1[], int list2[]){
 //   static int list[sizeof(list1)/sizeof(*list1) + sizeof(list2)/sizeof(*list2)];
@@ -65,6 +86,7 @@ int main() {
   float nH[t-1][m+1][m+1];
   float H[t-1][m+1][m+1];
   float T[t];
+  float Q[(m+1)*(t-1)][(m+1)*(t-1)];
   for (int i=0; i < t; i++)
   {
     T[i] = (float)i/(float)t;
@@ -94,7 +116,16 @@ int main() {
       }
     }
   }
-  // print(pH);
+  float** my2DArray = create2DArray((m+1)*(t-1),(m+1)*(t-1),H,t-1);
+  //print(my2DArray);
+  for (int h = 0; h < (m+1)*(t-1); h++)
+      {
+            for (int w = 0; w < (m+1)*(t-1); w++)
+            {
+                  Q[h][w] = 2*my2DArray[h][w];
+            }
+      }
+  print(Q);
 
   // int *p = concat(list1,list2);
   // int list[sizeof(list1)/sizeof(*list1) + sizeof(list2)/sizeof(*list2)];
@@ -103,24 +134,40 @@ int main() {
   //   list[counter] = *(p+counter);
   //   //std::cout << *(p+counter) <<std::endl;
   // }
-  int  Ax[] = {1, -1};                        // column for x
-  int  Ay[] = {1,  2};                        // column for y
-  int*  A[] = {Ax, Ay};                       // A comes columnwise
-  int   b[] = {7, 4};                         // right-hand side
+  int*  A[] = {};                       // A comes columnwise
+  int   b[] = {};                         // right-hand side
   CGAL::Const_oneset_iterator<CGAL::Comparison_result> 
         r(    CGAL::SMALLER);                 // constraints are "<="
-  bool fl[] = {true, true};                   // both x, y are lower-bounded
-  int   l[] = {0, 0};
-  bool fu[] = {false, true};                  // only y is upper-bounded
-  int   u[] = {0, 4};                         // x's u-entry is ignored
-  int  D1[] = {2};                            // 2D_{1,1}
-  int  D2[] = {0, 8};                         // 2D_{2,1}, 2D_{2,2}
-  int*  D[] = {D1, D2};                       // D-entries on/below diagonal
-  int   c[] = {0, -32};
-  int  c0   = 64;                             // constant term
+  bool fl[(m+1)*(t-1)];                   // both x, y are lower-bounded
+  for (int h = 0; h < (m+1)*(t-1); h++)
+  {
+    fl[h] = true;
+  } 
+  int   l[(m+1)*(t-1)];
+  for (int h = 0; h < (m+1)*(t-1); h++)
+  {
+    l[h] = 0;
+  } 
+  bool fu[(m+1)*(t-1)];                  // only y is upper-bounded
+  for (int h = 0; h < (m+1)*(t-1); h++)
+  {
+    fu[h] = true;
+  } 
+  int   u[(m+1)*(t-1)];                         // x's u-entry is ignored
+  for (int h = 0; h < (m+1)*(t-1); h++)
+  {
+    u[h] = 1000000;
+  }   
+  int*  D[(m+1)*(t-1)];                       // D-entries on/below diagonal
+  for (int h = 0; h < (m+1)*(t-1); h++)
+  {
+    D[h] = (int*)Q[h];
+  }  
+  int   c[] = {};
+  int  c0   = 0;                             // constant term
   // now construct the quadratic program; the first two parameters are
   // the number of variables and the number of constraints (rows of A)
-  Program qp (2, 2, A, b, r, fl, l, fu, u, D, c, c0);
+  Program qp ((m+1)*(t-1), 0, A, b, r, fl, l, fu, u, D, c, c0);
   // solve the program, using ET as the exact type
   Solution s = CGAL::solve_quadratic_program(qp, ET());
   // output solution
